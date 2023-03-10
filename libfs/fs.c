@@ -7,11 +7,40 @@
 #include "disk.h"
 #include "fs.h"
 
+#define FAT_EOC 0xFFFF
+
+struct superblock {
+	char signature[8];			// must be equal to “ECS150FS”
+	uint16_t total_blocks;		// total amount of blocks of virtual disk
+	uint16_t root_dir;			// root directory block index
+	uint16_t data_block;		// data block start index
+	uint16_t num_data_blocks;	// amount of data blocks
+	uint8_t num_FAT_blocks;		// number of blocks for FAT
+	char padding[4079];			// unused/padding
+};
+
+struct FAT {
+	uint16_t *entries;
+	uint16_t num_entries;	// equal to the number of data blocks in disk
+};
+
+struct file_entry {
+	char file_name[16];
+	uint32_t file_size;
+	uint16_t first_data_block;
+	char padding[10];
+};
+
+struct rootdir {
+	struct file_entry entries[128];
+};
+
 /* TODO: Phase 1 */
 
 int fs_mount(const char *diskname)
 {
 	/* TODO: Phase 1 */
+	/* open the virtual disk, using the block API, and load the meta-information that is necessary to handle the file system operations */
 }
 
 int fs_umount(void)
