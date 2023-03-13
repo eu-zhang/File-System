@@ -10,29 +10,33 @@
 #define FAT_EOC 0xFFFF
 #define BLOCK_SIZE 4096
 
-struct superblock {
-	char signature[8];			// must be equal to “ECS150FS”
-	uint16_t total_blocks;		// total amount of blocks of virtual disk
-	uint16_t root_dir;			// root directory block index
-	uint16_t data_block;		// data block start index
-	uint16_t num_data_blocks;	// amount of data blocks
-	uint8_t num_FAT_blocks;		// number of blocks for FAT
-	char padding[4079];			// unused/padding
+struct superblock
+{
+	char signature[8];		  // must be equal to “ECS150FS”
+	uint16_t total_blocks;	  // total amount of blocks of virtual disk
+	uint16_t root_dir;		  // root directory block index
+	uint16_t data_block;	  // data block start index
+	uint16_t num_data_blocks; // amount of data blocks
+	uint8_t num_FAT_blocks;	  // number of blocks for FAT
+	char padding[4079];		  // unused/padding
 };
 
-struct FAT {
+struct FAT
+{
 	uint16_t *entries;
-	uint16_t num_entries;	// equal to the number of data blocks in disk
+	uint16_t num_entries; // equal to the number of data blocks in disk
 };
 
-struct file_entry {
+struct file_entry
+{
 	char file_name[16];
 	uint32_t file_size;
 	uint16_t first_data_block;
 	char padding[10];
 };
 
-struct rootdir {
+struct rootdir
+{
 	struct file_entry entries[128];
 };
 
@@ -142,4 +146,3 @@ int fs_read(int fd, void *buf, size_t count)
 {
 	/* TODO: Phase 4 */
 }
-
