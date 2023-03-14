@@ -221,6 +221,7 @@ int fs_ls(void)
 		printf("file: %s, ", root.entries[curFile].file_name);
 		printf("size: %d, ", root.entries[curFile].file_size);
 		printf("data block: %d", root.entries[curFile].first_data_block);
+		curFile++;
 	}
 
 	return 0;
