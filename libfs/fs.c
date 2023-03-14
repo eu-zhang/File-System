@@ -280,7 +280,7 @@ int fs_read(int fd, void *buf, size_t count)
 		{
 			num_copied = BLOCK_SIZE;
 		}
-		memcpy(buf + bytes_read, buf, num_copied);	// copies copy num of bytes
+		memcpy(buf + bytes_read, bounce_buffer, num_copied);	// copies copy num of bytes
 		bytes_read += num_copied;
 
 		/* update offset */
@@ -296,6 +296,6 @@ int fs_read(int fd, void *buf, size_t count)
 			}
 		}
 	}
-	return 0;
+	return bytes_read;
 
 }
