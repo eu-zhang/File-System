@@ -40,11 +40,41 @@ struct rootdir
 	struct file_entry entries[128];
 };
 
+struct file_descriptor
+{
+	uint32_t offset;
+	uint16_t data_block_index;
+	uint16_t dir_index;
+	int open;
+};
+
+struct file_descriptor fd_table[128];
+
 struct superblock sb;
 struct FAT fat;
 struct rootdir root;
 struct file_entry fEntry;
 int mounted = 0;
+
+/* returns the index of the data block corresponding to the file’s offset */
+int block_index(int fd) {
+	/* get current block offset */
+	uint16_t block_index = root.entries[fd].first_data_block;
+	uint16_t block_offset = fd_table[fd].offset % BLOCK_SIZE;
+	
+	/* follow FAT until block that corresponds to the offset */
+	for (int i = 0; i < block_offset; i++)
+	{
+		// add error checking if reached EOC prematurely
+		block_index = fat.entries[block_index];
+	}
+	return block_index;
+}
+
+/* allocates a new data block and link it at the end of the file’s data block chain */
+void create_new_block() {
+
+}
 
 int fs_mount(const char *diskname)
 {
@@ -88,6 +118,13 @@ int fs_mount(const char *diskname)
 		// copy block into fat entries array
 		memcpy(fat.entries + (i * BLOCK_SIZE / 2), block, BLOCK_SIZE);
 	}
+
+	/* load root directory */
+	if (block_read(sb.root_dir, &root) == -1)
+	{
+		return -1;
+	}
+
 	mounted = 1;
 	return 0;
 }
@@ -125,7 +162,7 @@ int fs_create(const char *filename)
 		{
 			return -1;
 		}
-		else if (root.entries[i].file_name == "")
+		else if (strcmp(root.entries[i].file_name, "") == 0)
 		{
 			// Empty entry exists create a new blank file in entry
 			memcpy(root.entries[i].file_name, filename, sizeof(fEntry));
@@ -179,7 +216,7 @@ int fs_ls(void)
 	}
 
 	int curFile = 0;
-	while (!strcmp(root.entries[curFile].file_name, "") == 0)
+	while (strcmp(root.entries[curFile].file_name, "") != 0)
 	{
 		printf("file: %s, ", root.entries[curFile].file_name);
 		printf("size: %d, ", root.entries[curFile].file_size);
@@ -212,9 +249,52 @@ int fs_lseek(int fd, size_t offset)
 int fs_write(int fd, void *buf, size_t count)
 {
 	/* TODO: Phase 4 */
+
 }
 
 int fs_read(int fd, void *buf, size_t count)
 {
 	/* TODO: Phase 4 */
+	if (!mounted)
+	{
+		return -1;
+	}
+
+	uint16_t block = block_index(fd);
+
+	/* read @count bytes of data from the file referenced by @fd into @buf*/
+	char bounce_buffer[BLOCK_SIZE];
+
+	uint32_t bytes_read = 0;	// bytes read so far
+
+	while (bytes_read < count)
+	{
+		if (block_read(sb.data_block + block, &bounce_buffer) == -1)
+		{
+			return -1;
+		}
+		/* copy only right amount of bytes from bounce buffer into buf */
+		uint32_t num_copied = count - bytes_read;
+		if (num_copied > BLOCK_SIZE)
+		{
+			num_copied = BLOCK_SIZE;
+		}
+		memcpy(buf + bytes_read, buf, num_copied);	// copies copy num of bytes
+		bytes_read += num_copied;
+
+		/* update offset */
+		fd_table[fd].offset += bytes_read;
+
+		/* move to next block if still haven't read "count" bytes */
+		if (bytes_read < count)
+		{
+			block = fat.entries[block];
+			if (block == FAT_EOC)
+			{
+				break;	// less than @count bytes until the end of the file 
+			}
+		}
+	}
+	return 0;
+
 }
