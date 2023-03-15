@@ -55,11 +55,12 @@ struct file_entry fEntry;
 int mounted = 0;
 
 /* returns the index of the data block corresponding to the file’s offset */
-int block_index(int fd) {
+int block_index(int fd)
+{
 	/* get current block offset */
 	uint16_t block_index = root.entries[fd].first_data_block;
 	uint16_t block_offset = fd_table[fd].offset % BLOCK_SIZE;
-	
+
 	/* follow FAT until block that corresponds to the offset */
 	for (int i = 0; i < block_offset; i++)
 	{
@@ -174,7 +175,7 @@ int fs_create(const char *filename)
 		{
 			return -1;
 		}
-		else if (strcmp(root.entries[i].file_name, "") == 0)
+		else if (strcmp(root.entries[i].file_name, "\0") == 0)
 		{
 			// Empty entry exists create a new blank file in entry
 			memcpy(root.entries[i].file_name, filename, sizeof(fEntry));
@@ -201,7 +202,7 @@ int fs_delete(const char *filename)
 	{
 		if (strcmp(root.entries[i].file_name, filename) == 0)
 		{
-			memcpy(root.entries[i].file_name, "", sizeof(fEntry));
+			memcpy(root.entries[i].file_name, "\0", sizeof(fEntry));
 			int curBlock = root.entries[i].first_data_block;
 			for (int i = 0; i < fat.num_entries; i++)
 			{
@@ -228,7 +229,7 @@ int fs_ls(void)
 	}
 
 	int curFile = 0;
-	while (strcmp(root.entries[curFile].file_name, "") != 0)
+	while (strcmp(root.entries[curFile].file_name, "\0") != 0)
 	{
 		printf("file: %s, ", root.entries[curFile].file_name);
 		printf("size: %d, ", root.entries[curFile].file_size);
@@ -335,7 +336,7 @@ int fs_read(int fd, void *buf, size_t count)
 	/* read @count bytes of data from the file referenced by @fd into @buf*/
 	char bounce_buffer[BLOCK_SIZE];
 
-	uint32_t bytes_read = 0;	// bytes read so far
+	uint32_t bytes_read = 0; // bytes read so far
 
 	while (bytes_read < count)
 	{
@@ -349,7 +350,7 @@ int fs_read(int fd, void *buf, size_t count)
 		{
 			num_copied = BLOCK_SIZE;
 		}
-		memcpy(buf + bytes_read, bounce_buffer, num_copied);	// copies copy num of bytes
+		memcpy(buf + bytes_read, bounce_buffer, num_copied); // copies copy num of bytes
 		bytes_read += num_copied;
 
 		/* update offset */
@@ -361,10 +362,9 @@ int fs_read(int fd, void *buf, size_t count)
 			block = fat.entries[block];
 			if (block == FAT_EOC)
 			{
-				break;	// less than @count bytes until the end of the file 
+				break; // less than @count bytes until the end of the file
 			}
 		}
 	}
 	return bytes_read;
-
 }
