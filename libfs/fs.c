@@ -77,6 +77,15 @@ void create_new_block()
 {
 }
 
+int verify_file_name(const char *filename)
+{
+	if (filename == NULL || strlen(filename) > FS_FILENAME_LEN)
+	{
+		return -1;
+	}
+	return 0;
+}
+
 int fs_mount(const char *diskname)
 {
 	/* open the virtual disk, using the block API */
@@ -151,7 +160,7 @@ int fs_info(void)
 int fs_create(const char *filename)
 {
 	/* TODO: Phase 2 */
-	if (!mounted)
+	if (!mounted || verify_file_name(filename) == -1)
 	{
 		return -1;
 	}
@@ -179,7 +188,7 @@ int fs_create(const char *filename)
 int fs_delete(const char *filename)
 {
 	/* TODO: Phase 2 */
-	if (!mounted)
+	if (!mounted || verify_file_name(filename) == -1)
 	{
 		return -1;
 	}
@@ -231,6 +240,10 @@ int fs_ls(void)
 int fs_open(const char *filename)
 {
 	/* TODO: Phase 3 */
+	if (!mounted || verify_file_name(filename) == -1)
+	{
+		return -1;
+	}
 }
 
 int fs_close(int fd)
