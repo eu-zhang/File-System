@@ -43,8 +43,6 @@ struct rootdir
 struct file_descriptor
 {
 	uint32_t offset;
-	uint16_t data_block_index;
-	uint16_t dir_index;
 	int open;
 };
 
@@ -72,8 +70,22 @@ int block_index(int fd) {
 }
 
 /* allocates a new data block and link it at the end of the file’s data block chain */
-void create_new_block() {
-
+void create_new_block(uint16_t last_block) 
+{
+	/* first fit strategy */
+	uint16_t new_block = sb.data_block;
+	for (int i = 0; i < sb.num_data_blocks; i++)
+	{
+		if (fat.entries[new_block] == 0)
+		{
+			// mark as end of newly allocated block
+			fat.entries[new_block] = FAT_EOC;
+			break;	
+		}
+		new_block++;
+	}
+	/* link new block to end of data block chain */
+	fat.entries[last_block] = new_block;
 }
 
 int fs_mount(const char *diskname)
@@ -249,8 +261,65 @@ int fs_lseek(int fd, size_t offset)
 
 int fs_write(int fd, void *buf, size_t count)
 {
-	/* TODO: Phase 4 */
+	/* Check if file system is mounted */
+	if (!mounted)
+	{
+		return -1;
+	}
 
+	/* TODO: validate file descriptor and buffer */
+
+	uint16_t block = block_index(fd);
+
+	/* write @count bytes of data from @buf into the file @fd */
+	char bounce_buffer[BLOCK_SIZE];
+
+	uint32_t bytes_written = 0;	// bytes written so far
+
+	while (bytes_written < count)
+	{
+		if (block == FAT_EOC)
+		{
+			/* Allocate new block */
+			create_new_block(block);
+			block = fat.entries[block];
+		}
+		
+		/* Read block */
+		if (block_read(block, &bounce_buffer) == -1)
+		{
+			return -1;
+		}
+
+		/* calculate offset for write (current offset % block size gives offset in block)*/
+		uint32_t block_offset = fd_table[fd].offset % BLOCK_SIZE;
+
+		/* get remaining bytes to be written total */
+		uint32_t bytes_left = count - bytes_written;
+		
+		/* get remaining bytes to be written in current block */
+		uint32_t block_bytes_left = BLOCK_SIZE - block_offset;
+
+		if (bytes_left <= block_bytes_left)
+		{
+			bytes_left = block_bytes_left;
+		}
+
+		/* copy input data from buf to bounce buffer, bytes left in current block */
+		memcpy(bounce_buffer + block_offset, buf + bytes_written, bytes_left);
+
+		/* update file offset */
+		fd_table[fd].offset += bytes_left;
+		bytes_written += bytes_left;
+
+		/* Write block */
+		block_write(block, bounce_buffer);
+
+		/* go to next block */
+		block = fat.entries[block];
+	}
+
+	return bytes_written;
 }
 
 int fs_read(int fd, void *buf, size_t count)
