@@ -241,6 +241,19 @@ int fs_close(int fd)
 int fs_stat(int fd)
 {
 	/* TODO: Phase 3 */
+	if (!mounted)
+	{
+		return -1;
+	}
+
+	printf("FS Info:\n");
+	printf("total_blk_count=%d\n", sb.total_blocks);
+	printf("fat_blk_count=%d\n", sb.num_FAT_blocks);
+	printf("rdir_blk=%d\n", sb.root_dir);
+	printf("data_blk=%d\n", sb.data_block);
+	printf("data_blk_count=%d\n", sb.num_data_blocks);
+	//   printf("fat_free_ratio=%d/%d\n", fat_free,sb.num_data_blocks);
+	//   printf("rdir_free_ratio=%d/%d\n", rdir_free,FS_FILE_MAX_COUNT);
 }
 
 int fs_lseek(int fd, size_t offset)
