@@ -44,6 +44,7 @@ struct file_descriptor
 {
 	uint32_t offset;
 	int open;
+	struct file_entry *file;
 };
 
 struct file_descriptor fd_table[128];
@@ -87,6 +88,15 @@ void create_new_block(uint16_t last_block)
 	}
 	/* link new block to end of data block chain */
 	fat.entries[last_block] = new_block;
+}
+
+int verify_file_name(const char *filename)
+{
+	if (filename == NULL || strlen(filename) > FS_FILENAME_LEN)
+	{
+		return -1;
+	}
+	return 0;
 }
 
 int fs_mount(const char *diskname)
@@ -158,12 +168,44 @@ int fs_umount(void)
 int fs_info(void)
 {
 	/* TODO: Phase 1 */
+	if (!mounted)
+	{
+		return -1;
+	}
+
+	uint16_t fat_free = 0, rdir_free = 0;
+
+	for (int i = 0; i < sb.num_data_blocks; i++)
+	{
+		if (fat.entries[i] == 0)
+		{
+			fat_free++;
+		}
+	}
+	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
+	{
+		if (root.entries[i].file_name[0] == '\0')
+		{
+			rdir_free++;
+		}
+	}
+
+	printf("FS Info:\n");
+	printf("total_blk_count=%u\n", sb.total_blocks);
+	printf("fat_blk_count=%u\n", sb.num_FAT_blocks);
+	printf("rdir_blk=%u\n", sb.root_dir);
+	printf("data_blk=%u\n", sb.data_block);
+	printf("data_blk_count=%u\n", sb.num_data_blocks);
+	printf("fat_free_ratio=%u/%u\n", fat_free, sb.num_data_blocks);
+	printf("rdir_free_ratio=%u/%u\n", rdir_free, FS_FILE_MAX_COUNT);
+
+	return 0;
 }
 
 int fs_create(const char *filename)
 {
 	/* TODO: Phase 2 */
-	if (!mounted)
+	if (!mounted || verify_file_name(filename) == -1)
 	{
 		return -1;
 	}
@@ -191,7 +233,7 @@ int fs_create(const char *filename)
 int fs_delete(const char *filename)
 {
 	/* TODO: Phase 2 */
-	if (!mounted)
+	if (!mounted || verify_file_name(filename) == -1)
 	{
 		return -1;
 	}
@@ -228,18 +270,18 @@ int fs_ls(void)
 		return -1;
 	}
 
-	int curFile = 0;
-	while (strcmp(root.entries[curFile].file_name, "\0") != 0)
+	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
 	{
-		printf("file: %s, ", root.entries[curFile].file_name);
-		printf("size: %d, ", root.entries[curFile].file_size);
-		printf("data block: %d", root.entries[curFile].first_data_block);
-		curFile++;
+		if (root.entries[i].file_name[0] != '\0')
+		{
+			printf("%s %u\n", root.entries[i].file_name, root.entries[i].file_size);
+		}
 	}
 
 	return 0;
 }
 
+<<<<<<< HEAD
 // int fs_open(const char *filename)
 // {
 // 	/* TODO: Phase 3 */
@@ -259,6 +301,84 @@ int fs_ls(void)
 // {
 // 	/* TODO: Phase 3 */
 // }
+=======
+int fs_open(const char *filename)
+{
+	/* TODO: Phase 3 */
+	if (!mounted || verify_file_name(filename) == -1)
+	{
+		return -1;
+	}
+
+	// Loop through directory and check if the file exists
+	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
+	{
+		if (strcmp(root.entries[i].file_name, filename) == 0)
+		{
+
+			// Find empty fd
+			for (int j = 0; j < FS_OPEN_MAX_COUNT; j++)
+			{
+				if (fd_table[j].open == 0)
+				{
+					fd_table[j].offset = 0;
+					fd_table[j].open = 1;
+					fd_table[j].file = &root.entries[i];
+				}
+			}
+		}
+		return -1; // File not found
+	}
+
+	return -1; // empty fd not found
+}
+
+int fs_close(int fd)
+{
+	/* TODO: Phase 3 */
+	if (!mounted || fd < 0 || fd > 32 || fd_table[fd].open == 0)
+	{
+		return -1;
+	}
+
+	fd_table[fd].open = 0;
+	fd_table[fd].offset = 0;
+	fd_table[fd].file = NULL;
+
+	return 0;
+}
+
+int fs_stat(int fd)
+{
+	/* TODO: Phase 3 */
+	if (!mounted || fd < 0 || fd > 32 || fd_table[fd].open == 0)
+	{
+		return -1;
+	}
+	return fd_table[fd].file->file_size;
+}
+
+int fs_lseek(int fd, size_t offset)
+{
+	/* TODO: Phase 3 */
+
+	// Not mounted or invalid fd
+	if (!mounted || fd < 0 || fd >= FS_OPEN_MAX_COUNT || fd_table[fd].open == 0)
+	{
+		return -1;
+	}
+
+	// Offset larger than file size
+	if (offset > root.entries[fd].file_size)
+	{
+		return -1;
+	}
+
+	fd_table[fd].offset = offset;
+
+	return 0;
+}
+>>>>>>> 7279e73eb83f497b5d840a1e3efaa6d13a1cfbc8
 
 int fs_write(int fd, void *buf, size_t count)
 {
