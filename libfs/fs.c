@@ -217,10 +217,10 @@ int fs_create(const char *filename)
 		{
 			return -1;
 		}
-		else if (strcmp(root.entries[i].file_name, "\0") == 0)
+		else if (root.entries[i].file_name[0] == '\0')
 		{
 			// Empty entry exists create a new blank file in entry
-			memcpy(root.entries[i].file_name, filename, sizeof(fEntry));
+			memcpy(root.entries[i].file_name, filename, FS_FILENAME_LEN);
 			root.entries[i].file_size = 0;
 			root.entries[i].first_data_block = FAT_EOC;
 			return 0;
@@ -244,7 +244,7 @@ int fs_delete(const char *filename)
 	{
 		if (strcmp(root.entries[i].file_name, filename) == 0)
 		{
-			memcpy(root.entries[i].file_name, "\0", sizeof(fEntry));
+			root.entries[i].file_name[0] = '\0';
 			int curBlock = root.entries[i].first_data_block;
 			for (int i = 0; i < fat.num_entries; i++)
 			{
@@ -254,6 +254,7 @@ int fs_delete(const char *filename)
 				}
 				fat.entries[curBlock] = 0;
 				curBlock = fat.entries[curBlock + 1];
+
 			}
 			return 0;
 		}
