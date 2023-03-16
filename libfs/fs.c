@@ -186,6 +186,8 @@ int fs_info(void)
 	printf("data_blk_count=%u\n", sb.num_data_blocks);
 	printf("fat_free_ratio=%u/%u\n", fat_free, sb.num_data_blocks);
 	printf("rdir_free_ratio=%u/%u\n", rdir_free, FS_FILE_MAX_COUNT);
+
+	return 0;
 }
 
 int fs_create(const char *filename)
@@ -256,13 +258,12 @@ int fs_ls(void)
 		return -1;
 	}
 
-	int curFile = 0;
-	while (strcmp(root.entries[curFile].file_name, "\0") != 0)
+	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
 	{
-		printf("file: %s, ", root.entries[curFile].file_name);
-		printf("size: %d, ", root.entries[curFile].file_size);
-		printf("data block: %d", root.entries[curFile].first_data_block);
-		curFile++;
+		if (root.entries[i].file_name[0] != '\0')
+		{
+			printf("%s %u\n", root.entries[i].file_name, root.entries[i].file_size);
+		}
 	}
 
 	return 0;
@@ -331,6 +332,22 @@ int fs_stat(int fd)
 int fs_lseek(int fd, size_t offset)
 {
 	/* TODO: Phase 3 */
+
+	// Not mounted or invalid fd
+	if (!mounted || fd < 0 || fd >= FS_OPEN_MAX_COUNT || fd_table[fd].open == 0)
+	{
+		return -1;
+	}
+
+	// Offset larger than file size
+	if (offset > root.entries[fd].file_size)
+	{
+		return -1;
+	}
+
+	fd_table[fd].offset = offset;
+
+	return 0;
 }
 
 int fs_write(int fd, void *buf, size_t count)
