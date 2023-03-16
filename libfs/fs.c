@@ -281,27 +281,6 @@ int fs_ls(void)
 	return 0;
 }
 
-<<<<<<< HEAD
-// int fs_open(const char *filename)
-// {
-// 	/* TODO: Phase 3 */
-// }
-
-// int fs_close(int fd)
-// {
-// 	/* TODO: Phase 3 */
-// }
-
-// int fs_stat(int fd)
-// {
-// 	/* TODO: Phase 3 */
-// }
-
-// int fs_lseek(int fd, size_t offset)
-// {
-// 	/* TODO: Phase 3 */
-// }
-=======
 int fs_open(const char *filename)
 {
 	/* TODO: Phase 3 */
@@ -378,7 +357,6 @@ int fs_lseek(int fd, size_t offset)
 
 	return 0;
 }
->>>>>>> 7279e73eb83f497b5d840a1e3efaa6d13a1cfbc8
 
 int fs_write(int fd, void *buf, size_t count)
 {
@@ -413,6 +391,7 @@ int fs_write(int fd, void *buf, size_t count)
 		}
 
 		/* calculate offset for write (current offset % block size gives offset in block)*/
+		/* block offset is offset within bounce buffer */
 		uint32_t block_offset = fd_table[fd].offset % BLOCK_SIZE;
 
 		/* get remaining bytes to be written total */
