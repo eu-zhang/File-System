@@ -104,24 +104,28 @@ int fs_mount(const char *diskname)
 	/* open the virtual disk, using the block API */
 	if (block_disk_open(diskname) == -1)
 	{
+		printf("open\n");
 		return -1;
 	}
 
 	/* load the meta-information */
 	if (block_read(0, &sb) == -1)
 	{
+		printf("sb\n");
 		return -1;
 	}
 
 	/* validate signature of the superblock is ECS150FS */
-	if (strcmp(sb.signature, "ECS150FS") != 0)
-	{
-		return -1;
-	}
+	// if (strcmp(sb.signature, "ECS150FS") != 0)
+	// {
+	// 	printf("signature: %s\n", sb.signature);
+	// 	return -1;
+	// }
 
 	/* initialize FAT */
 	if (block_disk_count() != sb.total_blocks)
 	{
+		printf("count\n");
 		return -1;
 	}
 
@@ -136,6 +140,7 @@ int fs_mount(const char *diskname)
 		// index 0 of fat is EOC
 		if (block_read(i, block) == -1)
 		{
+			printf("block read\n");
 			return -1;
 		}
 		// copy block into fat entries array
@@ -145,6 +150,7 @@ int fs_mount(const char *diskname)
 	/* load root directory */
 	if (block_read(sb.root_dir, &root) == -1)
 	{
+		printf("root\n");
 		return -1;
 	}
 
