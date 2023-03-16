@@ -46,6 +46,7 @@ struct file_descriptor
 	uint16_t data_block_index;
 	uint16_t dir_index;
 	int open;
+	struct file_entry *file;
 };
 
 struct file_descriptor fd_table[128];
@@ -155,6 +156,36 @@ int fs_umount(void)
 int fs_info(void)
 {
 	/* TODO: Phase 1 */
+	if (!mounted)
+	{
+		return -1;
+	}
+
+	uint16_t fat_free = 0, rdir_free = 0;
+
+	for (int i = 0; i < sb.num_data_blocks; i++)
+	{
+		if (fat.entries[i] == 0)
+		{
+			fat_free++;
+		}
+	}
+	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
+	{
+		if (root.entries[i].file_name[0] == '\0')
+		{
+			rdir_free++;
+		}
+	}
+
+	printf("FS Info:\n");
+	printf("total_blk_count=%u\n", sb.total_blocks);
+	printf("fat_blk_count=%u\n", sb.num_FAT_blocks);
+	printf("rdir_blk=%u\n", sb.root_dir);
+	printf("data_blk=%u\n", sb.data_block);
+	printf("data_blk_count=%u\n", sb.num_data_blocks);
+	printf("fat_free_ratio=%u/%u\n", fat_free, sb.num_data_blocks);
+	printf("rdir_free_ratio=%u/%u\n", rdir_free, FS_FILE_MAX_COUNT);
 }
 
 int fs_create(const char *filename)
@@ -244,29 +275,57 @@ int fs_open(const char *filename)
 	{
 		return -1;
 	}
+
+	// Loop through directory and check if the file exists
+	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
+	{
+		if (strcmp(root.entries[i].file_name, filename) == 0)
+		{
+
+			// Find empty fd
+			for (int j = 0; j < FS_OPEN_MAX_COUNT; j++)
+			{
+				if (fd_table[j].open == 0)
+				{
+					fd_table[j].offset = 0;
+					fd_table[j].data_block_index = root.entries[i].first_data_block;
+					fd_table[j].dir_index = i;
+					fd_table[j].open = 1;
+					fd_table[j].file = &root.entries[i];
+				}
+			}
+		}
+		return -1; // File not found
+	}
+
+	return -1; // empty fd not found
 }
 
 int fs_close(int fd)
 {
 	/* TODO: Phase 3 */
+	if (!mounted || fd < 0 || fd > 32 || fd_table[fd].open == 0)
+	{
+		return -1;
+	}
+
+	fd_table[fd].open = 0;
+	fd_table[fd].offset = 0;
+	fd_table[fd].data_block_index = 0;
+	fd_table[fd].dir_index = 0;
+	fd_table[fd].file = NULL;
+
+	return 0;
 }
 
 int fs_stat(int fd)
 {
 	/* TODO: Phase 3 */
-	if (!mounted)
+	if (!mounted || fd < 0 || fd > 32 || fd_table[fd].open == 0)
 	{
 		return -1;
 	}
-
-	printf("FS Info:\n");
-	printf("total_blk_count=%d\n", sb.total_blocks);
-	printf("fat_blk_count=%d\n", sb.num_FAT_blocks);
-	printf("rdir_blk=%d\n", sb.root_dir);
-	printf("data_blk=%d\n", sb.data_block);
-	printf("data_blk_count=%d\n", sb.num_data_blocks);
-	//   printf("fat_free_ratio=%d/%d\n", fat_free,sb.num_data_blocks);
-	//   printf("rdir_free_ratio=%d/%d\n", rdir_free,FS_FILE_MAX_COUNT);
+	return fd_table[fd].file->file_size;
 }
 
 int fs_lseek(int fd, size_t offset)
