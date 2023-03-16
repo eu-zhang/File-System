@@ -301,8 +301,6 @@ int fs_open(const char *filename)
 				if (fd_table[j].open == 0)
 				{
 					fd_table[j].offset = 0;
-					fd_table[j].data_block_index = root.entries[i].first_data_block;
-					fd_table[j].dir_index = i;
 					fd_table[j].open = 1;
 					fd_table[j].file = &root.entries[i];
 				}
@@ -324,8 +322,6 @@ int fs_close(int fd)
 
 	fd_table[fd].open = 0;
 	fd_table[fd].offset = 0;
-	fd_table[fd].data_block_index = 0;
-	fd_table[fd].dir_index = 0;
 	fd_table[fd].file = NULL;
 
 	return 0;
