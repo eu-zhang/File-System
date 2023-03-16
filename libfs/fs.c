@@ -110,7 +110,7 @@ int fs_mount(const char *diskname)
 	}
 
 	/* initialize FAT */
-	if (block_disk_count() != sb.num_data_blocks)
+	if (block_disk_count() != sb.total_blocks)
 	{
 		return -1;
 	}
@@ -240,25 +240,25 @@ int fs_ls(void)
 	return 0;
 }
 
-int fs_open(const char *filename)
-{
-	/* TODO: Phase 3 */
-}
+// int fs_open(const char *filename)
+// {
+// 	/* TODO: Phase 3 */
+// }
 
-int fs_close(int fd)
-{
-	/* TODO: Phase 3 */
-}
+// int fs_close(int fd)
+// {
+// 	/* TODO: Phase 3 */
+// }
 
-int fs_stat(int fd)
-{
-	/* TODO: Phase 3 */
-}
+// int fs_stat(int fd)
+// {
+// 	/* TODO: Phase 3 */
+// }
 
-int fs_lseek(int fd, size_t offset)
-{
-	/* TODO: Phase 3 */
-}
+// int fs_lseek(int fd, size_t offset)
+// {
+// 	/* TODO: Phase 3 */
+// }
 
 int fs_write(int fd, void *buf, size_t count)
 {
