@@ -299,7 +299,9 @@ int fs_ls(void)
 		if (root.entries[i].file_name[0] != '\0')
 		{
 			/* Format info */
-			printf("%s %u\n", root.entries[i].file_name, root.entries[i].file_size);
+			printf("file: %s, ", root.entries[i].file_name);
+     			printf("size: %d, ",  root.entries[i].file_size);
+      			printf("data_blk: %d\n", root.entries[i].first_data_blk);
 		}
 	}
 
