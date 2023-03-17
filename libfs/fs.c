@@ -301,7 +301,7 @@ int fs_ls(void)
 			/* Format info */
 			printf("file: %s, ", root.entries[i].file_name);
      			printf("size: %d, ",  root.entries[i].file_size);
-      			printf("data_blk: %d\n", root.entries[i].first_data_blk);
+      			printf("data_blk: %d\n", root.entries[i].first_data_block);
 		}
 	}
 
