@@ -214,12 +214,15 @@ int fs_info(void)
 
 	uint16_t fat_free = 0, rdir_free = 0;
 
-	for (int i = 1; i < sb.num_data_blocks; i++)
+	uint16_t new_block = sb.data_block;
+
+	for (int i = 0; i < sb.num_data_blocks; i++)
 	{
-		if (fat.entries[i] == 0)
+		if (fat.entries[new_block] == 0)
 		{
 			fat_free++;
 		}
+		new_block++;
 	}
 	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
 	{
