@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "disk.h"
 #include "fs.h"
@@ -60,34 +61,56 @@ int block_index(int fd)
 {
 	/* get current block offset */
 	uint16_t block_index = root.entries[fd].first_data_block;
-	uint16_t block_offset = fd_table[fd].offset % BLOCK_SIZE;
+	uint16_t block_offset = fd_table[fd].offset / BLOCK_SIZE;
 
 	/* follow FAT until block that corresponds to the offset */
 	for (int i = 0; i < block_offset; i++)
 	{
 		// add error checking if reached EOC prematurely
+
 		block_index = fat.entries[block_index];
 	}
 	return block_index;
 }
 
 /* allocates a new data block and link it at the end of the file’s data block chain */
-void create_new_block(uint16_t last_block) 
+uint16_t create_new_block(uint16_t last_block, bool first_block, int fd) 
 {
-	/* first fit strategy */
 	uint16_t new_block = sb.data_block;
-	for (int i = 0; i < sb.num_data_blocks; i++)
+	/* first fit strategy */
+	if (first_block) 
 	{
-		if (fat.entries[new_block] == 0)
+		for (int i = 0; i < sb.num_data_blocks; i++)
 		{
-			// mark as end of newly allocated block
-			fat.entries[new_block] = FAT_EOC;
-			break;	
+			if (fat.entries[new_block] == 0)
+			{
+				/* set new free block to be first data block */
+				root.entries[fd].first_data_block = new_block;
+
+				// mark as end of newly allocated block
+				fat.entries[new_block] = FAT_EOC;
+				last_block = new_block;
+				break;	
+			}
+			new_block++;
 		}
-		new_block++;
+	} else {
+		for (int i = 0; i < sb.num_data_blocks; i++)
+		{
+			if (fat.entries[new_block] == 0)
+			{
+
+				// mark as end of newly allocated block
+				fat.entries[new_block] = FAT_EOC;
+				fat.entries[last_block] = new_block;
+				break;	
+			}
+			new_block++;
+		}
 	}
+		
 	/* link new block to end of data block chain */
-	fat.entries[last_block] = new_block;
+	return new_block;
 }
 
 int verify_file_name(const char *filename)
@@ -114,7 +137,7 @@ int fs_mount(const char *diskname)
 	}
 
 	/* validate signature of the superblock is ECS150FS */
-	if (strcmp(sb.signature, "ECS150FS") != 0)
+	if (strncmp(sb.signature, "ECS150FS", 8) != 0)
 	{
 		return -1;
 	}
@@ -139,7 +162,7 @@ int fs_mount(const char *diskname)
 			return -1;
 		}
 		// copy block into fat entries array
-		memcpy(fat.entries + (i * BLOCK_SIZE / 2), block, BLOCK_SIZE);
+		memcpy(fat.entries + (i * BLOCK_SIZE / sizeof(uint16_t)), block, BLOCK_SIZE);
 	}
 
 	/* load root directory */
@@ -270,11 +293,12 @@ int fs_ls(void)
 	{
 		return -1;
 	}
-
+	printf("FS Ls:\n");
 	for (int i = 0; i < FS_FILE_MAX_COUNT; i++)
 	{
 		if (root.entries[i].file_name[0] != '\0')
 		{
+			/* Format info */
 			printf("%s %u\n", root.entries[i].file_name, root.entries[i].file_size);
 		}
 	}
@@ -304,6 +328,7 @@ int fs_open(const char *filename)
 					fd_table[j].offset = 0;
 					fd_table[j].open = 1;
 					fd_table[j].file = &root.entries[i];
+					return 0;
 				}
 			}
 		}
@@ -368,9 +393,11 @@ int fs_write(int fd, void *buf, size_t count)
 	}
 
 	/* TODO: validate file descriptor and buffer */
-
+	bool is_first_entry = false;
+	
 	uint16_t block = block_index(fd);
 
+	uint16_t cur_index = block;
 	/* write @count bytes of data from @buf into the file @fd */
 	char bounce_buffer[BLOCK_SIZE];
 
@@ -380,9 +407,15 @@ int fs_write(int fd, void *buf, size_t count)
 	{
 		if (block == FAT_EOC)
 		{
-			/* Allocate new block */
-			create_new_block(block);
-			block = fat.entries[block];
+			if (root.entries[fd].first_data_block == FAT_EOC) {
+				is_first_entry = true;
+			} else {
+				is_first_entry = false;
+			}
+			block = create_new_block(cur_index, is_first_entry, fd);
+			// block = fat.entries[block];
+
+			// which one am i writing to???
 		}
 		
 		/* Read block */
@@ -390,6 +423,7 @@ int fs_write(int fd, void *buf, size_t count)
 		{
 			return -1;
 		}
+
 
 		/* calculate offset for write (current offset % block size gives offset in block)*/
 		/* block offset is offset within bounce buffer */
@@ -401,7 +435,7 @@ int fs_write(int fd, void *buf, size_t count)
 		/* get remaining bytes to be written in current block */
 		uint32_t block_bytes_left = BLOCK_SIZE - block_offset;
 
-		if (bytes_left <= block_bytes_left)
+		if (bytes_left > block_bytes_left)
 		{
 			bytes_left = block_bytes_left;
 		}
@@ -414,10 +448,19 @@ int fs_write(int fd, void *buf, size_t count)
 		bytes_written += bytes_left;
 
 		/* Write block */
-		block_write(block, bounce_buffer);
+		
+		block_write(sb.data_block + block, bounce_buffer);
+
 
 		/* go to next block */
+		cur_index = block;
+	
 		block = fat.entries[block];
+
+	}
+	if (fd_table[fd].offset > root.entries[fd].file_size)
+	{
+		root.entries[fd].file_size = fd_table[fd].offset;
 	}
 
 	return bytes_written;
@@ -431,12 +474,15 @@ int fs_read(int fd, void *buf, size_t count)
 		return -1;
 	}
 
+
 	uint16_t block = block_index(fd);
+
 
 	/* read @count bytes of data from the file referenced by @fd into @buf*/
 	char bounce_buffer[BLOCK_SIZE];
 
 	uint32_t bytes_read = 0; // bytes read so far
+	uint16_t bounce_buffer_offset = fd_table[fd].offset % BLOCK_SIZE;
 
 	while (bytes_read < count)
 	{
@@ -444,27 +490,34 @@ int fs_read(int fd, void *buf, size_t count)
 		{
 			return -1;
 		}
+		
 		/* copy only right amount of bytes from bounce buffer into buf */
-		uint32_t num_copied = count - bytes_read;
-		if (num_copied > BLOCK_SIZE)
+		uint32_t num_to_copy = count - bytes_read;
+		if (num_to_copy > BLOCK_SIZE)
 		{
-			num_copied = BLOCK_SIZE;
+			num_to_copy = BLOCK_SIZE;
 		}
-		memcpy(buf + bytes_read, bounce_buffer, num_copied); // copies copy num of bytes
-		bytes_read += num_copied;
+		
 
-		/* update offset */
-		fd_table[fd].offset += bytes_read;
-
+		memcpy(buf + bytes_read, bounce_buffer + bounce_buffer_offset, num_to_copy); // copies copy num of bytes
+		
+		bytes_read += num_to_copy;
+		
 		/* move to next block if still haven't read "count" bytes */
 		if (bytes_read < count)
 		{
 			block = fat.entries[block];
+			
 			if (block == FAT_EOC)
 			{
 				break; // less than @count bytes until the end of the file
 			}
 		}
+		bounce_buffer_offset = 0;
 	}
+	/* update offset */
+	fd_table[fd].offset += bytes_read;
+	
+
 	return bytes_read;
 }
