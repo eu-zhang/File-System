@@ -18,7 +18,6 @@ int main(int argc, char *argv[])
 	char *diskname;
 	int fd;
 	char data[26] = "abcdefghijklmnopqrstuvwxyz";
-
 	if (argc < 1) {
 		printf("Usage: %s <diskimage>\n", argv[0]);
 		exit(1);

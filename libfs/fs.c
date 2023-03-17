@@ -180,6 +180,7 @@ int fs_umount(void)
 	if (!mounted) {
 		return -1;
 	}
+
 	for (int i = 1; i < sb.num_FAT_blocks; i++) 
 	{
 		if (block_write(i, fat.entries + (BLOCK_SIZE / sizeof(uint16_t)) * (i-1)) == -1)
@@ -188,6 +189,11 @@ int fs_umount(void)
 		}
 	}
 	free(fat.entries);
+
+	if (block_write(sb.root_dir, &root) == -1)
+	{
+		return -1;
+	}
 
 	if (block_disk_close() == -1)
 	{
