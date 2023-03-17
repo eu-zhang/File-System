@@ -161,7 +161,7 @@ int fs_mount(const char *diskname)
 	uint16_t *block = malloc(BLOCK_SIZE); // block index of first FAT block
 
 	//printf("num fat  blocks: %u\n", sb.num_FAT_blocks);
-	for (int i = 1; i < sb.num_FAT_blocks; i++)
+	for (int i = 1; i <= sb.num_FAT_blocks; i++)
 	{
 		// index 0 of fat is EOC
 		if (block_read(i, block) == -1)
@@ -189,7 +189,7 @@ int fs_umount(void)
 		return -1;
 	}
 
-	for (int i = 1; i < sb.num_FAT_blocks; i++) 
+	for (int i = 1; i <= sb.num_FAT_blocks; i++) 
 	{
 		if (block_write(i, fat.entries + (BLOCK_SIZE / sizeof(uint16_t)) * (i-1)) == -1)
 		{

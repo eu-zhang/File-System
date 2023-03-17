@@ -266,6 +266,7 @@ void thread_fs_script(void *arg)
 		die("Cannot unmount diskname");
 
 	fclose(fd_script);
+	fprintf(stderr, "here\n");
 }
 
 void thread_fs_stat(void *arg)
