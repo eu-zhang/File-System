@@ -253,7 +253,6 @@ void thread_fs_script(void *arg)
 				printf("Read %d bytes from file. Compared %d correct.\n", count, data_size);
 			else
 				printf("Read unexpected data! %s read vs given %s\n", read_buf, data);
-
 			free(read_buf);
 			if(file_loaded){
 				free(data);

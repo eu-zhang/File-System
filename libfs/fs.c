@@ -161,7 +161,7 @@ int fs_mount(const char *diskname)
 	uint16_t *block = malloc(BLOCK_SIZE); // block index of first FAT block
 
 	//printf("num fat  blocks: %u\n", sb.num_FAT_blocks);
-	for (int i = 1; i <= sb.num_FAT_blocks; i++)
+	for (int i = 1; i < sb.num_FAT_blocks; i++)
 	{
 		// index 0 of fat is EOC
 		if (block_read(i, block) == -1)
@@ -189,7 +189,7 @@ int fs_umount(void)
 		return -1;
 	}
 
-	for (int i = 1; i <= sb.num_FAT_blocks; i++) 
+	for (int i = 1; i < sb.num_FAT_blocks; i++) 
 	{
 		if (block_write(i, fat.entries + (BLOCK_SIZE / sizeof(uint16_t)) * (i-1)) == -1)
 		{
@@ -524,7 +524,8 @@ int fs_write(int fd, void *buf, size_t count)
 
 int fs_read(int fd, void *buf, size_t count)
 {
-	//printf("\nread\n");
+	printf("fd: %d, count: %u\n", fd, count);
+
 	/* TODO: Phase 4 */
 	if (!mounted)
 	{
@@ -536,6 +537,7 @@ int fs_read(int fd, void *buf, size_t count)
 
 	/* read @count bytes of data from the file referenced by @fd into @buf*/
 	char bounce_buffer[BLOCK_SIZE];
+
 
 	uint32_t bytes_read = 0; // bytes read so far
 	uint16_t bounce_buffer_offset = fd_table[fd].offset % BLOCK_SIZE;
