@@ -154,7 +154,8 @@ int fs_mount(const char *diskname)
 	/* load FAT blocks */
 	uint16_t *block = malloc(BLOCK_SIZE); // block index of first FAT block
 
-	for (int i = 1; i < sb.num_FAT_blocks; i++)
+	//printf("num fat  blocks: %u\n", sb.num_FAT_blocks);
+	for (int i = 1; i <= sb.num_FAT_blocks; i++)
 	{
 		// index 0 of fat is EOC
 		if (block_read(i, block) == -1)
@@ -162,8 +163,9 @@ int fs_mount(const char *diskname)
 			return -1;
 		}
 		// copy block into fat entries array
-		memcpy(fat.entries + (i * BLOCK_SIZE / sizeof(uint16_t)), block, BLOCK_SIZE);
+		memcpy(fat.entries + ((i-1) * BLOCK_SIZE / sizeof(uint16_t)), block, BLOCK_SIZE);
 	}
+	fat.entries[0] = FAT_EOC;
 
 	/* load root directory */
 	if (block_read(sb.root_dir, &root) == -1)
@@ -181,15 +183,17 @@ int fs_umount(void)
 		return -1;
 	}
 
-	for (int i = 1; i < sb.num_FAT_blocks; i++) 
+	for (int i = 1; i <= sb.num_FAT_blocks; i++) 
 	{
 		if (block_write(i, fat.entries + (BLOCK_SIZE / sizeof(uint16_t)) * (i-1)) == -1)
 		{
 			return -1;
 		}
 	}
+
 	free(fat.entries);
 
+	//printf("root dir: %u\n", sb.root_dir);
 	if (block_write(sb.root_dir, &root) == -1)
 	{
 		return -1;
