@@ -60,7 +60,6 @@ int mounted = 0;
 int block_index(int fd)
 {
 	/* get current block offset */
-	//uint16_t block_index = root.entries[fd].first_data_block;
 	uint16_t block_index = root.entries[fd].first_data_block;
 	uint16_t block_offset = fd_table[fd].offset / BLOCK_SIZE;
 	//printf("file offset is: %u\n", fd_table[fd].offset);
@@ -69,7 +68,6 @@ int block_index(int fd)
 	for (int i = 1; i <= block_offset; i++)
 	{
 		// add error checking if reached EOC prematurely
-		//printf("fat.entries[%u]: %u\n", block_index, fat.entries[block_index]);
 		block_index = fat.entries[block_index];
 	}
 	return block_index;
@@ -412,14 +410,6 @@ int fs_lseek(int fd, size_t offset)
 
 int fs_write(int fd, void *buf, size_t count)
 {
-	// printf("\nwrite\n");
-	// printf("writing: ");
-	// char* temp =  (char*) buf;
-	// for (int i = 0; i < 5; i++)
-	// {
-	// 	printf("%c", temp[i]);
-	// }
-	// printf("\n");
 	/* Check if file system is mounted */
 	if (!mounted)
 	{
@@ -430,7 +420,6 @@ int fs_write(int fd, void *buf, size_t count)
 	bool is_first_entry = false;
 	
 	uint16_t block = block_index(fd);
-	// printf("block: %u\n", block);
 
 	uint16_t cur_index = block;
 	/* write @count bytes of data from @buf into the file @fd */
@@ -448,25 +437,17 @@ int fs_write(int fd, void *buf, size_t count)
 				is_first_entry = false;
 			}
 			block = create_new_block(cur_index, is_first_entry, fd);
-			// printf("block after create: %u\n", block);
+
 			// block = fat.entries[block];
 
 			// which one am i writing to???
 		}
 		
 		/* Read block */
-		// printf("%u\n", sb.data_block+block);
 		if (block_read(sb.data_block + block, &bounce_buffer) == -1)
 		{
 			return -1;
 		}
-		// printf("after block read: ");
-		// for (int i = 0; i < (int) 5; i++)
-		// {
-		// 	printf("%c", bounce_buffer[i]);
-		// }
-		// printf("\n");
-
 
 
 		/* calculate offset for write (current offset % block size gives offset in block)*/
@@ -484,8 +465,6 @@ int fs_write(int fd, void *buf, size_t count)
 		{
 			bytes_left = block_bytes_left;
 		}
-		// printf("block bytes left: %u\n", block_bytes_left);
-		// printf("copying %u bytes\n", bytes_left);
 		
 
 
@@ -497,16 +476,7 @@ int fs_write(int fd, void *buf, size_t count)
 		bytes_written += bytes_left;
 
 		/* Write block */
-		// printf("writing bounce buffer to block %u\n", block);
-		// printf("data+block + block is %u\n", sb.data_block + block);
 		block_write(sb.data_block + block, bounce_buffer);
-		// block_read(sb.data_block+block, &bounce_buffer);
-		// printf("after block write: ");
-		// for (int i = 0; i < 10; i++)
-		// {
-		// 	printf("%c", bounce_buffer[i]);
-		// }
-		// printf("\n");
 
 		/* go to next block */
 		cur_index = block;
@@ -524,8 +494,6 @@ int fs_write(int fd, void *buf, size_t count)
 
 int fs_read(int fd, void *buf, size_t count)
 {
-	fprintf(stderr, "fd: %d, count: %lu\n", fd, count);
-
 	/* TODO: Phase 4 */
 	if (!mounted)
 	{
@@ -541,21 +509,13 @@ int fs_read(int fd, void *buf, size_t count)
 
 	uint32_t bytes_read = 0; // bytes read so far
 	uint16_t bounce_buffer_offset = fd_table[fd].offset % BLOCK_SIZE;
-	// printf("initial bounce buffer offset: %u\n", bounce_buffer_offset);
 
 	while (bytes_read < count)
 	{
-		// printf("sb.data_block: %u, block: %u\n", sb.data_block, block);
 		if (block_read(sb.data_block + block, &bounce_buffer) == -1)
 		{
 			return -1;
 		}
-		// for (int i = 0; i < 10; i++)
-		// {
-		// 	printf("%c", bounce_buffer[i+bounce_buffer_offset]);
-		// }
-		// printf("\n");
-		
 		/* copy only right amount of bytes from bounce buffer into buf */
 		uint32_t num_to_copy = count - bytes_read;
 		if (num_to_copy > (uint32_t) (BLOCK_SIZE - bounce_buffer_offset))
@@ -567,7 +527,6 @@ int fs_read(int fd, void *buf, size_t count)
 		memcpy(buf + bytes_read, bounce_buffer + bounce_buffer_offset, num_to_copy); // copies copy num of bytes
 		
 		bytes_read += num_to_copy;
-		//printf("bytes read so far: %u\n",bytes_read);
 		fd_table[fd].offset += num_to_copy;
 		
 		/* move to next block if still haven't read "count" bytes */
