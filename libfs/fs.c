@@ -524,7 +524,7 @@ int fs_write(int fd, void *buf, size_t count)
 
 int fs_read(int fd, void *buf, size_t count)
 {
-	printf("fd: %d, count: %u\n", fd, count);
+	fprintf(stderr, "fd: %d, count: %u\n", fd, count);
 
 	/* TODO: Phase 4 */
 	if (!mounted)
