@@ -214,7 +214,7 @@ int fs_info(void)
 
 	uint16_t fat_free = 0, rdir_free = 0;
 
-	for (int i = 0; i < sb.num_data_blocks; i++)
+	for (int i = 1; i < sb.num_data_blocks; i++)
 	{
 		if (fat.entries[i] == 0)
 		{
