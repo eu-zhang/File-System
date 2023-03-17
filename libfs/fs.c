@@ -299,7 +299,6 @@ int fs_delete(const char *filename)
 			return 0;
 		}
 	}
-
 	return -1;
 }
 
@@ -350,8 +349,8 @@ int fs_open(const char *filename)
 					return 0;
 				}
 			}
+			return -1;
 		}
-		return -1; // File not found
 	}
 
 	return -1; // empty fd not found
