@@ -271,7 +271,7 @@ int fs_delete(const char *filename)
 			int cur_block = root.entries[i].first_data_block;
 			while (cur_block != FAT_EOC)
 			{
-				int next_block = fat.entries[curBlock];
+				int next_block = fat.entries[cur_block];
 				fat.entries[cur_block] = 0;
 				curBlock = next_block;
 
