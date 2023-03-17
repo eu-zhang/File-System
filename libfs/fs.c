@@ -63,13 +63,13 @@ int block_index(int fd)
 	//uint16_t block_index = root.entries[fd].first_data_block;
 	uint16_t block_index = root.entries[fd].first_data_block;
 	uint16_t block_offset = fd_table[fd].offset / BLOCK_SIZE;
-	printf("file offset is: %u\n", fd_table[fd].offset);
+	//printf("file offset is: %u\n", fd_table[fd].offset);
 
 	/* follow FAT until block that corresponds to the offset */
 	for (int i = 1; i <= block_offset; i++)
 	{
 		// add error checking if reached EOC prematurely
-		printf("fat.entries[%u]: %u\n", block_index, fat.entries[block_index]);
+		//printf("fat.entries[%u]: %u\n", block_index, fat.entries[block_index]);
 		block_index = fat.entries[block_index];
 	}
 	return block_index;
@@ -83,14 +83,14 @@ uint16_t create_new_block(uint16_t last_block, bool first_block, int fd)
 	
 	if (first_block) 
 	{
-		printf("true\n");
+		//printf("true\n");
 		for (int i = 1; i < sb.num_data_blocks; i++)
 		{
-			printf("fat.entries[%d]: %u\n", i, fat.entries[i]);
+			//printf("fat.entries[%d]: %u\n", i, fat.entries[i]);
 			if (fat.entries[i] == 0)
 			{
 				/* set new free block to be first data block */
-				printf("setting first data  block to be: %d\n", i);
+				//printf("setting first data  block to be: %d\n", i);
 				root.entries[fd].first_data_block = i;
 
 				// mark as end of newly allocated block
@@ -100,7 +100,7 @@ uint16_t create_new_block(uint16_t last_block, bool first_block, int fd)
 			}
 		}
 	} else {
-		printf("false\n");
+		//printf("false\n");
 		for (int i = 1; i < sb.num_data_blocks; i++)
 		{
 			if (fat.entries[i] == 0)
@@ -160,7 +160,8 @@ int fs_mount(const char *diskname)
 	/* load FAT blocks */
 	uint16_t *block = malloc(BLOCK_SIZE); // block index of first FAT block
 
-	for (int i = 1; i < sb.num_FAT_blocks; i++)
+	//printf("num fat  blocks: %u\n", sb.num_FAT_blocks);
+	for (int i = 1; i <= sb.num_FAT_blocks; i++)
 	{
 		// index 0 of fat is EOC
 		if (block_read(i, block) == -1)
@@ -188,7 +189,7 @@ int fs_umount(void)
 		return -1;
 	}
 
-	for (int i = 1; i < sb.num_FAT_blocks; i++) 
+	for (int i = 1; i <= sb.num_FAT_blocks; i++) 
 	{
 		if (block_write(i, fat.entries + (BLOCK_SIZE / sizeof(uint16_t)) * (i-1)) == -1)
 		{
@@ -198,6 +199,7 @@ int fs_umount(void)
 
 	free(fat.entries);
 
+	//printf("root dir: %u\n", sb.root_dir);
 	if (block_write(sb.root_dir, &root) == -1)
 	{
 		return -1;
@@ -225,7 +227,6 @@ int fs_info(void)
 
 	for (int i = 1; i < sb.num_data_blocks; i++)
 	{
-		printf("fat entry %d: %u\n", i, fat.entries[i]);
 		if (fat.entries[i] == 0)
 		{
 			fat_free++;
@@ -411,7 +412,7 @@ int fs_lseek(int fd, size_t offset)
 
 int fs_write(int fd, void *buf, size_t count)
 {
-	printf("\nwrite\n");
+	// printf("\nwrite\n");
 	// printf("writing: ");
 	// char* temp =  (char*) buf;
 	// for (int i = 0; i < 5; i++)
@@ -454,7 +455,7 @@ int fs_write(int fd, void *buf, size_t count)
 		}
 		
 		/* Read block */
-		printf("%u\n", sb.data_block+block);
+		// printf("%u\n", sb.data_block+block);
 		if (block_read(sb.data_block + block, &bounce_buffer) == -1)
 		{
 			return -1;
@@ -542,7 +543,7 @@ int fs_read(int fd, void *buf, size_t count)
 
 	while (bytes_read < count)
 	{
-		printf("sb.data_block: %u, block: %u\n", sb.data_block, block);
+		// printf("sb.data_block: %u, block: %u\n", sb.data_block, block);
 		if (block_read(sb.data_block + block, &bounce_buffer) == -1)
 		{
 			return -1;
@@ -564,13 +565,13 @@ int fs_read(int fd, void *buf, size_t count)
 		memcpy(buf + bytes_read, bounce_buffer + bounce_buffer_offset, num_to_copy); // copies copy num of bytes
 		
 		bytes_read += num_to_copy;
-		printf("bytes read so far: %u\n",bytes_read);
+		//printf("bytes read so far: %u\n",bytes_read);
 		fd_table[fd].offset += num_to_copy;
 		
 		/* move to next block if still haven't read "count" bytes */
 		if (bytes_read < count)
 		{
-			printf("fat.entries[%u] = %u\n", fat.entries[block],block);
+			//printf("fat.entries[%u] = %u\n", fat.entries[block],block);
 			block = fat.entries[block];
 			
 			if (block == FAT_EOC)
