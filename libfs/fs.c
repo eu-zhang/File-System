@@ -278,17 +278,15 @@ int fs_delete(const char *filename)
 		if (strcmp(root.entries[i].file_name, filename) == 0)
 		{
 			root.entries[i].file_name[0] = '\0';
-			int curBlock = root.entries[i].first_data_block;
-			for (int i = 0; i < fat.num_entries; i++)
+			int cur_block = root.entries[i].first_data_block;
+			while (cur_block != FAT_EOC)
 			{
-				if (curBlock == FAT_EOC)
-				{
-					break;
-				}
-				fat.entries[curBlock] = 0;
-				curBlock = fat.entries[curBlock + 1];
+				int next_block = fat.entries[cur_block];
+				fat.entries[cur_block] = 0;
+				cur_block = next_block;
 
 			}
+			memset(&root.entries[i], 0, sizeof(struct file_entry));
 			return 0;
 		}
 	}
@@ -309,7 +307,9 @@ int fs_ls(void)
 		if (root.entries[i].file_name[0] != '\0')
 		{
 			/* Format info */
-			printf("%s %u\n", root.entries[i].file_name, root.entries[i].file_size);
+			printf("file: %s, ", root.entries[i].file_name);
+     			printf("size: %d, ",  root.entries[i].file_size);
+      			printf("data_blk: %d\n", root.entries[i].first_data_block);
 		}
 	}
 
