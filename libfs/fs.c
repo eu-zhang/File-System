@@ -273,7 +273,7 @@ int fs_delete(const char *filename)
 			{
 				int next_block = fat.entries[cur_block];
 				fat.entries[cur_block] = 0;
-				curBlock = next_block;
+				cur_block = next_block;
 
 			}
 			memset(&root.entries[i], 0, sizeof(struct file_entry));
