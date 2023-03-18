@@ -62,7 +62,6 @@ int block_index(int fd)
 	/* get current block offset */
 	uint16_t block_index = root.entries[fd].first_data_block;
 	uint16_t block_offset = fd_table[fd].offset / BLOCK_SIZE;
-	//printf("file offset is: %u\n", fd_table[fd].offset);
 
 	/* follow FAT until block that corresponds to the offset */
 	for (int i = 1; i <= block_offset; i++)
@@ -81,14 +80,11 @@ uint16_t create_new_block(uint16_t last_block, bool first_block, int fd)
 	
 	if (first_block) 
 	{
-		//printf("true\n");
 		for (int i = 1; i < sb.num_data_blocks; i++)
 		{
-			//printf("fat.entries[%d]: %u\n", i, fat.entries[i]);
 			if (fat.entries[i] == 0)
 			{
 				/* set new free block to be first data block */
-				//printf("setting first data  block to be: %d\n", i);
 				root.entries[fd].first_data_block = i;
 
 				// mark as end of newly allocated block
@@ -98,7 +94,6 @@ uint16_t create_new_block(uint16_t last_block, bool first_block, int fd)
 			}
 		}
 	} else {
-		//printf("false\n");
 		for (int i = 1; i < sb.num_data_blocks; i++)
 		{
 			if (fat.entries[i] == 0)
@@ -158,7 +153,6 @@ int fs_mount(const char *diskname)
 	/* load FAT blocks */
 	uint16_t *block = malloc(BLOCK_SIZE); // block index of first FAT block
 
-	//printf("num fat  blocks: %u\n", sb.num_FAT_blocks);
 	for (int i = 1; i <= sb.num_FAT_blocks; i++)
 	{
 		// index 0 of fat is EOC
@@ -197,7 +191,6 @@ int fs_umount(void)
 
 	free(fat.entries);
 
-	//printf("root dir: %u\n", sb.root_dir);
 	if (block_write(sb.root_dir, &root) == -1)
 	{
 		return -1;
@@ -214,7 +207,6 @@ int fs_umount(void)
 
 int fs_info(void)
 {
-	/* TODO: Phase 1 */
 	if (!mounted)
 	{
 		return -1;
@@ -252,7 +244,6 @@ int fs_info(void)
 
 int fs_create(const char *filename)
 {
-	/* TODO: Phase 2 */
 	if (!mounted || verify_file_name(filename) == -1)
 	{
 		return -1;
@@ -280,7 +271,6 @@ int fs_create(const char *filename)
 
 int fs_delete(const char *filename)
 {
-	/* TODO: Phase 2 */
 	if (!mounted || verify_file_name(filename) == -1)
 	{
 		return -1;
@@ -310,7 +300,6 @@ int fs_delete(const char *filename)
 
 int fs_ls(void)
 {
-	/* TODO: Phase 2 */
 	if (!mounted)
 	{
 		return -1;
@@ -332,7 +321,6 @@ int fs_ls(void)
 
 int fs_open(const char *filename)
 {
-	/* TODO: Phase 3 */
 	if (!mounted || verify_file_name(filename) == -1)
 	{
 		return -1;
@@ -364,7 +352,6 @@ int fs_open(const char *filename)
 
 int fs_close(int fd)
 {
-	/* TODO: Phase 3 */
 	if (!mounted || fd < 0 || fd > 32 || fd_table[fd].open == 0)
 	{
 		return -1;
@@ -379,7 +366,6 @@ int fs_close(int fd)
 
 int fs_stat(int fd)
 {
-	/* TODO: Phase 3 */
 	if (!mounted || fd < 0 || fd > 32 || fd_table[fd].open == 0)
 	{
 		return -1;
@@ -389,8 +375,6 @@ int fs_stat(int fd)
 
 int fs_lseek(int fd, size_t offset)
 {
-	/* TODO: Phase 3 */
-
 	// Not mounted or invalid fd
 	if (!mounted || fd < 0 || fd >= FS_OPEN_MAX_COUNT || fd_table[fd].open == 0)
 	{
@@ -416,7 +400,6 @@ int fs_write(int fd, void *buf, size_t count)
 		return -1;
 	}
 
-	/* TODO: validate file descriptor and buffer */
 	bool is_first_entry = false;
 	
 	uint16_t block = block_index(fd);
@@ -437,10 +420,6 @@ int fs_write(int fd, void *buf, size_t count)
 				is_first_entry = false;
 			}
 			block = create_new_block(cur_index, is_first_entry, fd);
-
-			// block = fat.entries[block];
-
-			// which one am i writing to???
 		}
 		
 		/* Read block */
@@ -451,13 +430,10 @@ int fs_write(int fd, void *buf, size_t count)
 
 
 		/* calculate offset for write (current offset % block size gives offset in block)*/
-		/* block offset is offset within bounce buffer */
 		uint32_t block_offset = fd_table[fd].offset % BLOCK_SIZE;
-		// printf("block offset in write: %u\n", block_offset);
 
 		/* get remaining bytes to be written total */
 		uint32_t bytes_left = count - bytes_written;
-		// printf("bytes left: %u\n", bytes_left);
 		/* get remaining bytes to be written in current block */
 		uint32_t block_bytes_left = BLOCK_SIZE - block_offset;
 
@@ -494,7 +470,6 @@ int fs_write(int fd, void *buf, size_t count)
 
 int fs_read(int fd, void *buf, size_t count)
 {
-	/* TODO: Phase 4 */
 	if (!mounted || fd < 0 || fd >= FS_OPEN_MAX_COUNT || fd_table[fd].open == 0)
 	{
 		return -1;
@@ -522,7 +497,6 @@ int fs_read(int fd, void *buf, size_t count)
 		{
 			num_to_copy = (uint32_t) (BLOCK_SIZE - bounce_buffer_offset);
 		}
-		// printf("number of bytes to copy: %u\n", num_to_copy);
 
 		memcpy(buf + bytes_read, bounce_buffer + bounce_buffer_offset, num_to_copy); // copies copy num of bytes
 		
@@ -532,7 +506,6 @@ int fs_read(int fd, void *buf, size_t count)
 		/* move to next block if still haven't read "count" bytes */
 		if (bytes_read < count)
 		{
-			//printf("fat.entries[%u] = %u\n", fat.entries[block],block);
 			block = fat.entries[block];
 			
 			if (block == FAT_EOC)
@@ -542,9 +515,6 @@ int fs_read(int fd, void *buf, size_t count)
 		}
 		bounce_buffer_offset = 0;
 	}
-	/* update offset */
-	
-
 
 	return bytes_read;
 }
