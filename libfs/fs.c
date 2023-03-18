@@ -411,7 +411,7 @@ int fs_lseek(int fd, size_t offset)
 int fs_write(int fd, void *buf, size_t count)
 {
 	/* Check if file system is mounted */
-	if (!mounted)
+	if (!mounted || fd < 0 || fd >= FS_OPEN_MAX_COUNT || fd_table[fd].open == 0)
 	{
 		return -1;
 	}
@@ -495,7 +495,7 @@ int fs_write(int fd, void *buf, size_t count)
 int fs_read(int fd, void *buf, size_t count)
 {
 	/* TODO: Phase 4 */
-	if (!mounted)
+	if (!mounted || fd < 0 || fd >= FS_OPEN_MAX_COUNT || fd_table[fd].open == 0)
 	{
 		return -1;
 	}
