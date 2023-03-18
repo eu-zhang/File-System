@@ -60,6 +60,7 @@ int mounted = 0;
 int block_index(int fd)
 {
 	/* get current block offset */
+
 	uint16_t block_index = root.entries[fd].first_data_block;
 	uint16_t block_offset = fd_table[fd].offset / BLOCK_SIZE;
 
@@ -76,6 +77,7 @@ int block_index(int fd)
 /* allocates a new data block and link it at the end of the file’s data block chain */
 uint16_t create_new_block(uint16_t last_block, bool first_block, int fd) 
 {
+
 	uint16_t new_block = sb.data_block;
 	/* first fit strategy */
 	if (first_block) 
