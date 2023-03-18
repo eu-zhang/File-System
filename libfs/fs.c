@@ -408,56 +408,84 @@ int fs_lseek(int fd, size_t offset)
 
 int fs_write(int fd, void *buf, size_t count)
 {
-	/* TODO: Phase 4 */
+	/* Check if file system is mounted */
 	if (!mounted)
 	{
 		return -1;
 	}
 
-
+	/* TODO: validate file descriptor and buffer */
+	bool is_first_entry = false;
+	
 	uint16_t block = block_index(fd);
 
-
-	/* read @count bytes of data from the file referenced by @fd into @buf*/
+	uint16_t cur_index = block;
+	/* write @count bytes of data from @buf into the file @fd */
 	char bounce_buffer[BLOCK_SIZE];
 
-	uint32_t bytes_read = 0; // bytes read so far
-	uint16_t bounce_buffer_offset = fd_table[fd].offset % BLOCK_SIZE;
+	uint32_t bytes_written = 0;	// bytes written so far
 
-	while (bytes_read < count)
+	while (bytes_written < count)
 	{
-		if (block_read(sb.data_block + block, &bounce_buffer) == -1)
+		if (block == FAT_EOC)
+		{
+			if (root.entries[fd].first_data_block == FAT_EOC) {
+				is_first_entry = true;
+			} else {
+				is_first_entry = false;
+			}
+			block = create_new_block(cur_index, is_first_entry, fd);
+			// block = fat.entries[block];
+
+			// which one am i writing to???
+		}
+		
+		/* Read block */
+		if (block_read(block, &bounce_buffer) == -1)
 		{
 			return -1;
 		}
-		
-		/* copy only right amount of bytes from bounce buffer into buf */
-		uint32_t num_to_copy = count - bytes_read;
-		if (num_to_copy > BLOCK_SIZE)
-		{
-			num_to_copy = BLOCK_SIZE;
-		}
-		
 
-		memcpy(buf + bytes_read, bounce_buffer + bounce_buffer_offset, num_to_copy); // copies copy num of bytes
+
+		/* calculate offset for write (current offset % block size gives offset in block)*/
+		/* block offset is offset within bounce buffer */
+		uint32_t block_offset = fd_table[fd].offset % BLOCK_SIZE;
+
+		/* get remaining bytes to be written total */
+		uint32_t bytes_left = count - bytes_written;
 		
-		bytes_read += num_to_copy;
-		
-		/* move to next block if still haven't read "count" bytes */
-		if (bytes_read < count)
+		/* get remaining bytes to be written in current block */
+		uint32_t block_bytes_left = BLOCK_SIZE - block_offset;
+
+		if (bytes_left > block_bytes_left)
 		{
-			block = fat.entries[block];
-			
-			if (block == FAT_EOC)
-			{
-				break; // less than @count bytes until the end of the file
-			}
+			bytes_left = block_bytes_left;
 		}
-		bounce_buffer_offset = 0;
-	}
-	/* update offset */
-	fd_table[fd].offset += bytes_read;
+
+		/* copy input data from buf to bounce buffer, bytes left in current block */
+		memcpy(bounce_buffer + block_offset, buf + bytes_written, bytes_left);
+
+		/* update file offset */
+		fd_table[fd].offset += bytes_left;
+		bytes_written += bytes_left;
+
+		/* Write block */
+		
+		block_write(sb.data_block + block, bounce_buffer);
+
+
+		/* go to next block */
+		cur_index = block;
 	
+		block = fat.entries[block];
+
+	}
+	if (fd_table[fd].offset > root.entries[fd].file_size)
+	{
+		root.entries[fd].file_size = fd_table[fd].offset;
+	}
+
+	return bytes_written;
 }
 
 int fs_read(int fd, void *buf, size_t count)
@@ -512,4 +540,6 @@ int fs_read(int fd, void *buf, size_t count)
 	/* update offset */
 	fd_table[fd].offset += bytes_read;
 	
+
+	return bytes_read;
 }
