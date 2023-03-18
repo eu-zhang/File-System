@@ -152,7 +152,7 @@ int fs_mount(const char *diskname)
 		return -1;
 	}
 	
-	fat.num_entries = sb.num_FAT_blocks * BLOCK_SIZE / 2;
+	fat.num_entries = sb.num_FAT_blocks * BLOCK_SIZE / sizeof(uint16_t);
 	fat.entries = malloc(fat.num_entries * sizeof(uint16_t));
 
 	/* load FAT blocks */
