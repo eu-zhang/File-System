@@ -19,7 +19,7 @@ struct superblock
 	uint16_t data_block;	  // data block start index
 	uint16_t num_data_blocks; // amount of data blocks
 	uint8_t num_FAT_blocks;	  // number of blocks for FAT
-	char padding[4079];		  // unused/padding
+	uint8_t padding[4079];		  // unused/padding
 };
 
 struct FAT
@@ -33,7 +33,7 @@ struct file_entry
 	char file_name[16];
 	uint32_t file_size;
 	uint16_t first_data_block;
-	char padding[10];
+	uint8_t padding[10];
 };
 
 struct rootdir
